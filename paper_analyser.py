@@ -12,9 +12,8 @@ from pybliometrics.scopus import (
 config["Authentication"]["APIKey"] = "24642bce15a7a6e69757c7a945095542"
 
 
-def search_for_paper(
-    papertitle
-):  # searches for papers of given title on Scopus database
+def search_for_paper(papertitle):
+    # searches for papers of given title on Scopus database
     list_of_researcher_ids = []
     try:
         article_search_list = ScopusSearch("TITLE({paper})".format(paper=papertitle))
@@ -30,9 +29,8 @@ def search_for_paper(
         return None
 
 
-def all_combos_of_authors(
-    list_of_authors
-):  # creates a "links list" for a set of authors
+def all_combos_of_authors(list_of_authors):
+    # creates a "links list" for a set of authors
     try:
         combos_list = itertools.combinations(list_of_authors, 2)
         return combos_list
@@ -40,9 +38,8 @@ def all_combos_of_authors(
         return None
 
 
-def add_combos_of_paper_index_to_list(
-    paper_index
-):  # adds the unique new links to an overall list
+def add_combos_of_paper_index_to_list(paper_index):
+    # adds the unique new links to an overall list
     overall_list = []
     paper_index = paper_index
     # print(search_for_paper(paper_titles[paper_index]))
@@ -56,9 +53,8 @@ def add_combos_of_paper_index_to_list(
         return None
 
 
-with open(
-    "papers.csv"
-) as papers_csv:  # opens csv of all papers. Only the paper titles are used. Creates list of paper titles
+with open("papers.csv") as papers_csv:
+    # opens csv of all papers. Only the paper titles are used. Creates list of paper titles
     papers = csv.DictReader(papers_csv)
     paper_titles = []
     for row in papers:
