@@ -1,17 +1,23 @@
 # import all the relevant libraries
+import os.path as osp
+import pathlib
+import statistics
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
-from tensorflow import keras
-from keras import layers
 
 # print(tf.__version__)
 import tensorflow_docs as tfdocs
 import tensorflow_docs.plots as tf_plt
-import tensorflow_docs.modeling
+from keras import layers
 from scipy.stats import spearmanr
-import statistics
+from tensorflow import keras
+
+CWD = pathlib.Path(__file__).parent.parent.resolve()
+DATA_DIR = osp.join(CWD, "data")
+OUTPUT_DIR = osp.join(CWD, "results")
 
 
 def norm(x, train_stats):
@@ -20,7 +26,7 @@ def norm(x, train_stats):
 
 def create_dataframes():
     # extract the data from the csv file
-    raw_dataset = pd.read_csv("code/author_stats.csv")
+    raw_dataset = pd.read_csv(osp.join(DATA_DIR, "author_stats.csv"))
     dataset = raw_dataset.copy()
     dataset = dataset.dropna()
     dataset = dataset.drop(
@@ -61,14 +67,14 @@ def create_dataframes():
         diag_kind="kde",
         kind="reg",
     )
-    plt.savefig("code/figs/variables_with_h.pdf")
+    plt.savefig(osp.join(OUTPUT_DIR, "/figs/variables_with_h.pdf"))
     # plt.show()
     plt.close()
 
     train_stats = train_dataset.describe()
     train_stats.pop("h_index")
     train_stats = train_stats.transpose()
-    train_stats.to_csv("code/readouts&stats/train_stats.csv")
+    train_stats.to_csv(osp.join(OUTPUT_DIR, "/readouts&stats/train_stats.csv"))
 
     # split features from labels & normalise data
     train_labels = train_dataset.pop("h_index")
@@ -90,10 +96,10 @@ def create_dataframes():
 # Create and train the network
 def train_new_model(
     train_labels,
-    train_dataset,
+    # train_dataset,
     normed_train_data,
     EPOCHS=10000,
-    model_save_path: str = "code/saved_model/",
+    model_save_path: str = osp.join(OUTPUT_DIR, "saved_model"),
 ):
     def build_model():
         model = keras.Sequential(
@@ -107,9 +113,8 @@ def train_new_model(
         )
 
         # RMSoptimizer = keras.optimizers.RMSprop(0.0001)
-        SGDoptimizer = keras.optimizers.SGD(
-            learning_rate=0.00001, momentum=0.99
-        )  # This worked really well with patience=200 and (1024,128,16,16,1) mae~0.7
+        SGDoptimizer = keras.optimizers.SGD(learning_rate=0.00001, momentum=0.99)
+        # This worked really well with patience=200 and (1024,128,16,16,1) mae~0.7
         # ADAMoptimizer = keras.optimizers.Adam(
         #     learning_rate=5e-5,
         # )
@@ -141,7 +146,7 @@ def train_new_model(
     plotter.plot({"Basic": history}, metric="mae")
     plt.ylim([0, 5])
     plt.ylabel("MAE [h_index]")
-    plt.savefig("code/figs/learning.pdf")
+    plt.savefig(osp.join(OUTPUT_DIR, "figs/learning.pdf"))
     # plt.show()
     plt.close()
 
@@ -150,7 +155,9 @@ def train_new_model(
 
 
 def make_network_statistics_and_graphs(
-    test_labels, normed_test_data, saved_model_path: str = "code/saved_model/"
+    test_labels,
+    normed_test_data,
+    saved_model_path: str = osp.join(OUTPUT_DIR, "saved_model"),
 ):
     """ "
     Function to make network statistics and graphs
@@ -171,7 +178,7 @@ def make_network_statistics_and_graphs(
     plt.xlim(lims)
     plt.ylim(lims)
     plt.plot(lims, lims)
-    plt.savefig("code/figs/accuracy_scatter_plot_largelims.pdf")
+    plt.savefig(osp.join(OUTPUT_DIR, "figs/accuracy_scatter_plot_largelims.pdf"))
     # plt.show()
     plt.close()
 
@@ -183,7 +190,7 @@ def make_network_statistics_and_graphs(
     plt.xlim(lims)
     plt.ylim(lims)
     plt.plot(lims, lims)
-    plt.savefig("code/figs/accuracy_scatter_plot.pdf")
+    plt.savefig(osp.join(OUTPUT_DIR, "figs/accuracy_scatter_plot.pdf"))
     # plt.show()
     plt.close()
 
@@ -195,7 +202,7 @@ def make_network_statistics_and_graphs(
     sns.kdeplot(error, fill=True)
     plt.xlabel("Prediction Error [h_index]")
     plt.ylabel("Count (normalised)")
-    plt.savefig("code/figs/error_KDE_plot.pdf")
+    plt.savefig(osp.join(OUTPUT_DIR, "figs/error_KDE_plot.pdf"))
     # plt.show()
     plt.close()
 
@@ -208,7 +215,9 @@ def make_network_statistics_and_graphs(
     median_rel = statistics.median(perc_error)
 
     # generate readout file with network information
-    with open("code/readouts&stats/network_accuracy.txt", "w") as printout:
+    with open(
+        osp.join(OUTPUT_DIR, "readouts&stats/network_accuracy.txt"), "w"
+    ) as printout:
         stat_sig = (
             "network has Spearman's Rank correlation coefficient of "
             + str(coef)
