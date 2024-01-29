@@ -1,8 +1,9 @@
 import requests
 import os
+import os.path as osp
 from tqdm import tqdm
 CWD = os.getcwd()
-
+DATA_DIR = osp.join(CWD, "data")
 # Define the base URL for the PubMed API
 base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 
@@ -37,11 +38,15 @@ if response.status_code == 200:
 
     if summary_response.status_code == 200:
         summary_results = summary_response.json()
-        # Extract and print the titles
-        csv_path = os.path.join(CWD, "new_papers.csv")
+        
+        separator = ";"
+        csv_path = os.path.join(DATA_DIR, "new_papers.txt")
         with open(csv_path, "w") as f:
-            headings = "Journal, Year, Authors, Title, Paper Ref, Country\n"
+            f.write(f"sep={separator}\n")
+            headings = "Journal; Year; Authors; Title; Paper Ref; Country\n"
             f.write(headings)
+        
+        # Extract and print the titles
         for pmid in tqdm(pmids):
             paper = summary_results["result"][pmid]
             journal = paper["fulljournalname"]
@@ -49,7 +54,7 @@ if response.status_code == 200:
             authors = [a["name"] for a in paper["authors"]]
             title = paper["title"]
             # country = summary_results["locationlabel"]
-            line = f"{journal}, {year}, {authors}, {title}, {pmid}\n"
+            line = f"{journal}; {year}; {authors}; {title}; {pmid}\n"
 
             with open(csv_path, "a") as f:
                 f.write(line)
