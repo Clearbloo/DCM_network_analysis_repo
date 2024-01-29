@@ -1,6 +1,6 @@
-from matplotlib import pyplot as plt
 import pandas as pd
 import seaborn as sns
+from matplotlib import pyplot as plt
 
 raw_dataset = pd.read_csv("author_stats.csv")
 dataset = raw_dataset.copy()

@@ -1,7 +1,9 @@
-import requests
 import os
 import os.path as osp
+
+import requests
 from tqdm import tqdm
+
 CWD = os.getcwd()
 DATA_DIR = osp.join(CWD, "data")
 # Define the base URL for the PubMed API
@@ -38,14 +40,14 @@ if response.status_code == 200:
 
     if summary_response.status_code == 200:
         summary_results = summary_response.json()
-        
+
         separator = ";"
         csv_path = os.path.join(DATA_DIR, "new_papers.txt")
         with open(csv_path, "w") as f:
             f.write(f"sep={separator}\n")
             headings = "Journal; Year; Authors; Title; Paper Ref; Country\n"
             f.write(headings)
-        
+
         # Extract and print the titles
         for pmid in tqdm(pmids):
             paper = summary_results["result"][pmid]
