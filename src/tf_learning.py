@@ -54,23 +54,6 @@ def create_dataframes():
     test_dataset = dataset.drop(train_dataset.index)
 
     # Descipbe & visualise the stats
-    sns.pairplot(
-        train_dataset,
-        y_vars=["h_index"],
-        x_vars=[
-            "average_DCM_papers_of_coauthors",
-            "connected_institutes",
-            "connections",
-            "second_order_connections",
-            "average_h_index_of_coauthors",
-        ],
-        diag_kind="kde",
-        kind="reg",
-    )
-    plt.savefig(osp.join(OUTPUT_DIR, "/figs/variables_with_h.pdf"))
-    # plt.show()
-    plt.close()
-
     train_stats = train_dataset.describe()
     train_stats.pop("h_index")
     train_stats = train_stats.transpose()
@@ -250,7 +233,7 @@ if __name__ == "__main__":
     # retrain = input("retrain model? (y/n): ")
     retrain = "y"
     if retrain == "y":
-        model_path = train_new_model(train_labels, train_dataset, normed_train_data)
+        model_path = train_new_model(train_labels, normed_train_data)
     elif retrain.lower() == "n":
         model_path = None
     else:
