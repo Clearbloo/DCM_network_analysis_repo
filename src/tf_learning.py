@@ -11,7 +11,6 @@ import tensorflow as tf
 
 # print(tf.__version__)
 import tensorflow_docs as tfdocs
-import tensorflow_docs.modeling as mod
 import tensorflow_docs.plots as tf_plt
 from constants import (
     DATA_DIR,
@@ -117,10 +116,6 @@ def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCH
 
     model = build_model()
 
-    checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
-        osp.join(model_save_path, "model.h5"), save_best_only=True
-    )
-
     history = model.fit(
         normed_train_data,
         train_labels,
@@ -133,7 +128,6 @@ def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCH
             ),
             tfdocs.modeling.EpochDots(),
             keras.callbacks.EarlyStopping(patience=200, restore_best_weights=True),
-            checkpoint_cb,
         ],
     )
 
