@@ -154,7 +154,6 @@ def make_network_statistics_and_graphs(
     """
     Function to make network statistics and graphs
     """
-
     new_model = tf.keras.models.load_model(osp.join(saved_model_path, "saved_model"))
 
     # use the network to generate predictions
@@ -256,20 +255,20 @@ if __name__ == "__main__":
     model_load_path = args.model_load_path
     epochs = args.epochs
 
-    model_save_path = setup_directory()
-
-    (
-        train_labels,
-        test_labels,
-        train_dataset,
-        test_dataset,
-        normed_train_data,
-        normed_test_data,
-    ) = create_dataframes(model_save_path)
-
     if retrain:
+        model_save_path = setup_directory()
+
+        (
+            train_labels,
+            test_labels,
+            train_dataset,
+            test_dataset,
+            normed_train_data,
+            normed_test_data,
+        ) = create_dataframes(model_save_path)
         train_new_model(train_labels, normed_train_data, model_save_path, epochs)
         model_load_path = model_save_path
+
     else:
         model_load_path = None
 
