@@ -92,7 +92,7 @@ def create_dataframes(model_save_path):
 
 
 # Create and train the network
-def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCHS=20):
+def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCHS=20, optimizer_type="adam"):
     def build_model():
         model = keras.Sequential(
             [
@@ -104,14 +104,23 @@ def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCH
             ]
         )
 
-        # RMSoptimizer = keras.optimizers.RMSprop(0.0001)
+        RMSoptimizer = keras.optimizers.RMSprop(0.0001)
         SGDoptimizer = keras.optimizers.SGD(learning_rate=0.00001, momentum=0.99)
         # This worked really well with patience=200 and (1024,128,16,16,1) mae~0.7
-        # ADAMoptimizer = keras.optimizers.Adam(
-        #     learning_rate=5e-5,
-        # )
+        ADAMoptimizer = keras.optimizers.Adam(learning_rate=5e-5)
 
-        model.compile(loss="mse", optimizer=SGDoptimizer, metrics=["mae", "mse"])
+        match optimizer_type.lower():
+            case "sgd":
+                optimizer = SGDoptimizer
+            case "adam":
+                optimizer = ADAMoptimizer
+            case "rms":
+                optimizer = RMSoptimizer
+            case _:
+                raise Exception("Invalid optimizer type")
+
+
+        model.compile(loss="mse", optimizer=optimizer, metrics=["mae", "mse"])
         return model
 
     model = build_model()
@@ -154,7 +163,7 @@ def make_network_statistics_and_graphs(
     """
     Function to make network statistics and graphs
     """
-    new_model = tf.keras.models.load_model(osp.join(saved_model_path, "saved_model"))
+    new_model = tf.keras.models.load_model(saved_model_path)
 
     # use the network to generate predictions
     test_predictions = new_model.predict(normed_test_data).flatten()
