@@ -13,7 +13,7 @@ config["Authentication"]["APIKey"] = "24642bce15a7a6e69757c7a945095542"
 
 
 def search_for_paper(papertitle):
-    # searches for papers of given title on Scopus database
+    """searches for papers of given title on Scopus database"""
     list_of_researcher_ids = []
     try:
         article_search_list = ScopusSearch("TITLE({paper})".format(paper=papertitle))
@@ -25,7 +25,7 @@ def search_for_paper(papertitle):
         for author in ab.authorgroup:
             list_of_researcher_ids.append(author.auid)
         return list_of_researcher_ids
-    except:  # noqa: E722
+    except KeyError:
         return None
 
 
