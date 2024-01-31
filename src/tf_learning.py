@@ -1,7 +1,8 @@
-# import all the relevant libraries
+import argparse
+import os
 import os.path as osp
-import pathlib
 import statistics
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,21 +11,36 @@ import tensorflow as tf
 
 # print(tf.__version__)
 import tensorflow_docs as tfdocs
+import tensorflow_docs.modeling as mod
 import tensorflow_docs.plots as tf_plt
+from constants import (
+    DATA_DIR,
+    OUTPUT_DIR,
+)
 from keras import layers
 from scipy.stats import spearmanr
 from tensorflow import keras
 
-CWD = pathlib.Path(__file__).parent.parent.resolve()
-DATA_DIR = osp.join(CWD, "data")
-OUTPUT_DIR = osp.join(CWD, "results")
+
+def setup_directory():
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    dir_name = f"model_{timestamp}"
+    model_save_path = osp.join(OUTPUT_DIR, dir_name)
+
+    if not osp.exists(model_save_path):
+        os.mkdir(model_save_path)
+        os.mkdir(osp.join(model_save_path, "logs"))
+        os.mkdir(osp.join(model_save_path, "readouts"))
+        os.mkdir(osp.join(model_save_path, "figs"))
+
+    return model_save_path
 
 
 def norm(x, train_stats):
     return (x - train_stats["mean"]) / train_stats["std"]
 
 
-def create_dataframes():
+def create_dataframes(model_save_path):
     # extract the data from the csv file
     raw_dataset = pd.read_csv(osp.join(DATA_DIR, "author_stats.csv"))
     dataset = raw_dataset.copy()
@@ -57,7 +73,7 @@ def create_dataframes():
     train_stats = train_dataset.describe()
     train_stats.pop("h_index")
     train_stats = train_stats.transpose()
-    train_stats.to_csv(osp.join(OUTPUT_DIR, "/readouts&stats/train_stats.csv"))
+    train_stats.to_csv(osp.join(model_save_path, "logs/train_stats.csv"))
 
     # split features from labels & normalise data
     train_labels = train_dataset.pop("h_index")
@@ -77,13 +93,7 @@ def create_dataframes():
 
 
 # Create and train the network
-def train_new_model(
-    train_labels,
-    # train_dataset,
-    normed_train_data,
-    EPOCHS=10000,
-    model_save_path: str = osp.join(OUTPUT_DIR, "saved_model"),
-):
+def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCHS=20):
     def build_model():
         model = keras.Sequential(
             [
@@ -107,6 +117,10 @@ def train_new_model(
 
     model = build_model()
 
+    checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
+        osp.join(model_save_path, "model.h5"), save_best_only=True
+    )
+
     history = model.fit(
         normed_train_data,
         train_labels,
@@ -114,8 +128,12 @@ def train_new_model(
         validation_split=0.2,
         verbose=0,
         callbacks=[
+            keras.callbacks.TensorBoard(
+                log_dir=osp.join(model_save_path, "logs"), histogram_freq=1
+            ),
             tfdocs.modeling.EpochDots(),
             keras.callbacks.EarlyStopping(patience=200, restore_best_weights=True),
+            checkpoint_cb,
         ],
     )
 
@@ -129,24 +147,21 @@ def train_new_model(
     plotter.plot({"Basic": history}, metric="mae")
     plt.ylim([0, 5])
     plt.ylabel("MAE [h_index]")
-    plt.savefig(osp.join(OUTPUT_DIR, "figs/learning.pdf"))
+    plt.savefig(osp.join(model_save_path, "figs/learning.pdf"))
     # plt.show()
     plt.close()
 
-    model.save(model_save_path, overwrite=True)
-    return model_save_path
+    model.save(model_save_path)
 
 
 def make_network_statistics_and_graphs(
-    test_labels,
-    normed_test_data,
-    saved_model_path: str = osp.join(OUTPUT_DIR, "saved_model"),
+    test_labels, normed_test_data, saved_model_path: str = osp.join(OUTPUT_DIR, "model_20240131-225522")
 ):
-    """ "
+    """
     Function to make network statistics and graphs
     """
-    # load the network. This will be the newly trained network if Y was entered above
-    new_model = tf.keras.models.load_model(saved_model_path)
+
+    new_model = tf.keras.models.load_model(osp.join(saved_model_path, "saved_model"))
 
     # use the network to generate predictions
     test_predictions = new_model.predict(normed_test_data).flatten()
@@ -161,7 +176,7 @@ def make_network_statistics_and_graphs(
     plt.xlim(lims)
     plt.ylim(lims)
     plt.plot(lims, lims)
-    plt.savefig(osp.join(OUTPUT_DIR, "figs/accuracy_scatter_plot_largelims.pdf"))
+    plt.savefig(osp.join(model_save_path, "figs/accuracy_scatter_plot_largelims.pdf"))
     # plt.show()
     plt.close()
 
@@ -173,7 +188,7 @@ def make_network_statistics_and_graphs(
     plt.xlim(lims)
     plt.ylim(lims)
     plt.plot(lims, lims)
-    plt.savefig(osp.join(OUTPUT_DIR, "figs/accuracy_scatter_plot.pdf"))
+    plt.savefig(osp.join(model_save_path, "figs/accuracy_scatter_plot.pdf"))
     # plt.show()
     plt.close()
 
@@ -185,7 +200,7 @@ def make_network_statistics_and_graphs(
     sns.kdeplot(error, fill=True)
     plt.xlabel("Prediction Error [h_index]")
     plt.ylabel("Count (normalised)")
-    plt.savefig(osp.join(OUTPUT_DIR, "figs/error_KDE_plot.pdf"))
+    plt.savefig(osp.join(model_save_path, "figs/error_KDE_plot.pdf"))
     # plt.show()
     plt.close()
 
@@ -198,9 +213,7 @@ def make_network_statistics_and_graphs(
     median_rel = statistics.median(perc_error)
 
     # generate readout file with network information
-    with open(
-        osp.join(OUTPUT_DIR, "readouts&stats/network_accuracy.txt"), "w"
-    ) as printout:
+    with open(osp.join(model_save_path, "readouts/network_accuracy.txt"), "w") as printout:
         stat_sig = (
             "network has Spearman's Rank correlation coefficient of "
             + str(coef)
@@ -222,6 +235,35 @@ def make_network_statistics_and_graphs(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="AI trainer")
+    parser.add_argument(
+        "-r",
+        "--retrain",
+        action="store_true",
+        help="Choose whether to retrain the model or not",
+    )
+    parser.add_argument(
+        "-p",
+        "--model_load_path",
+        type=str,
+        default=None,
+        help="Path to model to generate statistics",
+    )
+    parser.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=100,
+        help="Choose how many epochs to retrain for. Must use -r as well",
+    )
+    args = parser.parse_args()
+
+    retrain = args.retrain
+    model_load_path = args.model_load_path
+    epochs = args.epochs
+
+    model_save_path = setup_directory()
+
     (
         train_labels,
         test_labels,
@@ -229,27 +271,19 @@ if __name__ == "__main__":
         test_dataset,
         normed_train_data,
         normed_test_data,
-    ) = create_dataframes()
-    # retrain = input("retrain model? (y/n): ")
-    retrain = "y"
-    if retrain == "y":
-        model_path = train_new_model(train_labels, normed_train_data)
-    elif retrain.lower() == "n":
-        model_path = None
-    else:
-        print("Invalid answer, not training")
-        model_path = None
+    ) = create_dataframes(model_save_path)
 
-    if model_path:
-        make_network_statistics_and_graphs(test_labels, normed_test_data, model_path)
+    if retrain:
+        train_new_model(train_labels, normed_train_data, model_save_path, epochs)
+        model_load_path = model_save_path
     else:
-        model_path = input("Specify path to old model to make new statistics: ")
-        if model_path:
-            make_network_statistics_and_graphs(
-                test_labels, normed_test_data, model_path
-            )
-        else:
-            print("Using previous model")
-            make_network_statistics_and_graphs(
-                test_labels, normed_test_data
-            )  # Use last model instead
+        model_load_path = None
+
+    if model_load_path:
+        make_network_statistics_and_graphs(
+            test_labels, normed_test_data, model_load_path
+        )
+
+    else:
+        print("Using previous best model")
+        make_network_statistics_and_graphs(test_labels, normed_test_data)
