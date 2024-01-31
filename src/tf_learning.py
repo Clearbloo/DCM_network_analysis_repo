@@ -279,4 +279,5 @@ if __name__ == "__main__":
 
     else:
         print("Using previous best model")
+        # FIXME - Need to add in a kwarg that lets user choose model path and create dataframes from a previous dataset
         make_network_statistics_and_graphs(test_labels, normed_test_data)
