@@ -1,11 +1,14 @@
 # relevant imports
+import os
+import os.path as osp
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 # gather the metadata
-stats = pd.read_csv("code/readouts&stats/train_stats.csv")
+stats = pd.read_csv("results/model_20240131_225522/readouts/train_stats.csv")
 column_names = stats.values.T.tolist()[0]
 print(column_names[2])
 
@@ -51,7 +54,7 @@ def generate_varied_values(index, interval_in_stds, num_to_either_side):
 
 
 # load the network model
-new_model = tf.keras.models.load_model("code/saved_model/DCM_h_index_prediction_model")
+new_model = tf.keras.models.load_model("results/model_20240131_225522/saved_model")
 
 
 # generate a graph of varied network prediction as a single variable is changed
@@ -84,8 +87,11 @@ def show_graph_of_varied_input(index_of_input, save_graph_bool):
     axes2.set_xlabel("varied inputs in " + varied_input_name + " (true value)")
 
     if save_graph_bool:
-        name_of_graph = (
-            "code/figs/varied_inputs/variation_of_h_with_" + varied_input_name + ".pdf"
+        varied_inputs_dir = "results/model_20240131_225522/figs/varied_inputs"
+        if not osp.exists(varied_inputs_dir):
+            os.mkdir(varied_inputs_dir)
+        name_of_graph = osp.join(
+            varied_inputs_dir, "variation_of_h_with_" + varied_input_name + ".pdf"
         )
         plt.savefig(name_of_graph)
     plt.close()

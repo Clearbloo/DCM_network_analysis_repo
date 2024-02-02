@@ -22,7 +22,7 @@ from tensorflow import keras
 
 
 def setup_directory():
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dir_name = f"model_{timestamp}"
     model_save_path = osp.join(OUTPUT_DIR, dir_name)
 
@@ -61,18 +61,15 @@ def create_dataframes(model_save_path):
     )  # remove irrelivant data from each author
     # print(dataset.tail())
 
-    # Create squared input vectors
-    for x in dataset:
-        dataset[f"{x}_squared"] = dataset[x] ** 2
     # generate test and train datasets.
     train_dataset = dataset.sample(frac=0.8, random_state=0)
     test_dataset = dataset.drop(train_dataset.index)
-
+    breakpoint()
     # Descipbe & visualise the stats
     train_stats = train_dataset.describe()
     train_stats.pop("h_index")
     train_stats = train_stats.transpose()
-    train_stats.to_csv(osp.join(model_save_path, "logs/train_stats.csv"))
+    train_stats.to_csv(osp.join(model_save_path, "readouts/train_stats.csv"))
 
     # split features from labels & normalise data
     train_labels = train_dataset.pop("h_index")
@@ -80,6 +77,10 @@ def create_dataframes(model_save_path):
 
     normed_train_data = norm(train_dataset, train_stats)
     normed_test_data = norm(test_dataset, train_stats)
+
+    # Create squared input vectors
+    for x in dataset:
+        dataset[f"{x}_squared"] = dataset[x] ** 2
 
     return (
         train_labels,
