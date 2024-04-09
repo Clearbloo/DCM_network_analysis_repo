@@ -13,7 +13,10 @@ config["Authentication"]["APIKey"] = "24642bce15a7a6e69757c7a945095542"
 
 
 def search_for_paper(papertitle):
-    """searches for papers of given title on Scopus database"""
+    """
+    searches for papers of given title on Scopus database
+    TODO - Replace try except block. Only return list
+    """
     list_of_researcher_ids = []
     try:
         article_search_list = ScopusSearch("TITLE({paper})".format(paper=papertitle))
@@ -30,7 +33,10 @@ def search_for_paper(papertitle):
 
 
 def all_combos_of_authors(list_of_authors):
-    # creates a "links list" for a set of authors
+    """
+    Creates a "links list" for a set of authors
+    TODO - Shouldn't have a bare try except block
+    """
     try:
         combos_list = itertools.combinations(list_of_authors, 2)
         return combos_list

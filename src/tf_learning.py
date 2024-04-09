@@ -6,6 +6,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from pandas import DataFrame
 import seaborn as sns
 import tensorflow as tf
 
@@ -15,6 +16,7 @@ import tensorflow_docs.plots as tf_plt
 from constants import (
     DATA_DIR,
     OUTPUT_DIR,
+    DEFAULT_MODEL_DIR,
 )
 from keras import layers
 from scipy.stats import spearmanr
@@ -22,6 +24,7 @@ from tensorflow import keras
 
 
 def setup_directory():
+    """Creates a new model directory"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dir_name = f"model_{timestamp}"
     model_save_path = osp.join(OUTPUT_DIR, dir_name)
@@ -35,12 +38,16 @@ def setup_directory():
     return model_save_path
 
 
-def norm(x, train_stats):
+def norm(x : DataFrame, train_stats: DataFrame) -> DataFrame:
+    """
+    Normalise a pandas dataframe.
+    Returns z-score, z = (x - mu)/sigma
+    """
     return (x - train_stats["mean"]) / train_stats["std"]
 
 
-def create_dataframes(model_save_path):
-    # extract the data from the csv file
+def create_dataframes(model_save_path=None) -> tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame]:
+    """Extract the data from the csv file and return as several dataframes"""
     raw_dataset = pd.read_csv(osp.join(DATA_DIR, "author_stats.csv"))
     dataset = raw_dataset.copy()
     dataset = dataset.dropna()
@@ -64,12 +71,13 @@ def create_dataframes(model_save_path):
     # generate test and train datasets.
     train_dataset = dataset.sample(frac=0.8, random_state=0)
     test_dataset = dataset.drop(train_dataset.index)
-    breakpoint()
+
     # Descipbe & visualise the stats
     train_stats = train_dataset.describe()
     train_stats.pop("h_index")
     train_stats = train_stats.transpose()
-    train_stats.to_csv(osp.join(model_save_path, "readouts/train_stats.csv"))
+    if model_save_path:
+        train_stats.to_csv(osp.join(model_save_path, "readouts/train_stats.csv"))
 
     # split features from labels & normalise data
     train_labels = train_dataset.pop("h_index")
@@ -120,7 +128,6 @@ def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCH
             case _:
                 raise Exception("Invalid optimizer type")
 
-
         model.compile(loss="mse", optimizer=optimizer, metrics=["mae", "mse"])
         return model
 
@@ -158,13 +165,11 @@ def train_new_model(train_labels, normed_train_data, model_save_path: str, EPOCH
     model.save(model_save_path)
 
 
-def make_network_statistics_and_graphs(
-    test_labels, normed_test_data, saved_model_path: str = osp.join(OUTPUT_DIR, "model_20240131-225522")
-):
+def make_network_statistics_and_graphs(test_labels, normed_test_data, saved_model_path: str = DEFAULT_MODEL_DIR):
     """
     Function to make network statistics and graphs
     """
-    new_model = tf.keras.models.load_model(saved_model_path)
+    new_model = tf.keras.models.load_model(osp.join(saved_model_path, "saved_model"))
 
     # use the network to generate predictions
     test_predictions = new_model.predict(normed_test_data).flatten()
@@ -267,7 +272,6 @@ if __name__ == "__main__":
 
     if retrain:
         model_save_path = setup_directory()
-
         (
             train_labels,
             test_labels,
@@ -289,5 +293,13 @@ if __name__ == "__main__":
 
     else:
         print("Using previous best model")
-        # FIXME - Need to add in a kwarg that lets user choose model path and create dataframes from a previous dataset
+        (
+            train_labels,
+            test_labels,
+            train_dataset,
+            test_dataset,
+            normed_train_data,
+            normed_test_data,
+        ) = create_dataframes()
         make_network_statistics_and_graphs(test_labels, normed_test_data)
+
