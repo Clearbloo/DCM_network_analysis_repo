@@ -23,13 +23,13 @@
           pyblio = with pkgs.python310Packages;
             buildPythonPackage rec {
               pname = "pybliometrics";
-              version = "4.3";
+              version = "3.1.0";
               pyproject = true;
               src = fetchPypi {
                 inherit pname version;
-                sha256 = "sha256-R78B5Cnq1UL0a94pZfEIqZUON4PiyCOziWs1H7z7kCg=";
+                sha256 = "sha256-qWcJX7Obandn0ZM9WRACbnKyn+0BQqFtIktLwtEBHIY=";
               };
-              propagatedBuildInputs = [ requests tqdm urllib3 ];
+              propagatedBuildInputs = [ requests tqdm urllib3 pbr simplejson ];
               nativeBuildInputs = [ setuptools setuptools-scm ];
               doCheck = true;
             };
@@ -58,9 +58,9 @@
               pkgs.vscode
               pkgs.vscode-extensions.reditorsupport.r
 
-              (pkgs.python310.withPackages (ps: [ ps.pandas pyblio ]))
+              (pkgs.python310.withPackages
+                (ps: [ ps.pandas ps.simplejson pyblio ps.pip ]))
               pkgs.ruff
-
             ];
             env.LD_LIBRARY_PATH =
               pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib pkgs.libz ];
